@@ -43,6 +43,7 @@ export const schema = z.object({
       spotify: z.enum(externalEmbedOptions).optional(),
       appleMusic: z.enum(externalEmbedOptions).optional(),
       soundcloud: z.enum(externalEmbedOptions).optional(),
+      internetArchive: z.enum(externalEmbedOptions).optional(),
     })
     .optional(),
   mutedThreads: z.array(z.string()), // should move to server

@@ -11,6 +11,7 @@ export const embedPlayerSources = [
   'vimeo',
   'giphy',
   'tenor',
+  'internetArchive',
 ] as const
 
 export type EmbedPlayerSource = (typeof embedPlayerSources)[number]
@@ -30,6 +31,7 @@ export type EmbedPlayerType =
   | 'vimeo_video'
   | 'giphy_gif'
   | 'tenor_gif'
+  | 'internet_archive'
 
 export const externalEmbedLabels: Record<EmbedPlayerSource, string> = {
   youtube: 'YouTube',
@@ -41,6 +43,7 @@ export const externalEmbedLabels: Record<EmbedPlayerSource, string> = {
   spotify: 'Spotify',
   appleMusic: 'Apple Music',
   soundcloud: 'SoundCloud',
+  internetArchive: 'Archive.org',
 }
 
 export interface EmbedPlayerParams {
@@ -333,6 +336,18 @@ export function parseEmbedPlayerFromUrl(
         isGif: true,
         hideDetails: true,
         playerUri: `${url}${!includesExt ? '.gif' : ''}`,
+      }
+    }
+  }
+
+  if (urlp.hostname === 'archive.org' || urlp.hostname === 'www.archive.org') {
+    const [_, path, id] = urlp.pathname.split('/')
+
+    if (path === 'details' && id) {
+      return {
+        type: 'internet_archive',
+        source: 'internetArchive',
+        playerUri: `https://archive.org/embed/${id}`,
       }
     }
   }
