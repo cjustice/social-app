@@ -152,6 +152,7 @@ function PostThreadLoaded({
   const {isMobile, isTabletOrMobile} = useWebMediaQueries()
   const ref = useRef<ListMethods>(null)
   const highlightedPostRef = useRef<View | null>(null)
+  const highlightedPostItem = useRef<any>(null)
   const needsScrollAdjustment = useRef<boolean>(
     !isNative || // web always uses scroll adjustment
       (thread.type === 'post' && !thread.ctx.isParentLoading), // native only does it when not loading from placeholder
@@ -215,16 +216,16 @@ function PostThreadLoaded({
           offset: pageY,
         })
       }
-      if (isNative) {
-        highlightedPostRef.current?.measure(
-          (_x, _y, _width, _height, _pageX, pageY) => {
-            onMeasure(pageY)
-          },
-        )
+      if (isNative && highlightedPostItem.current) {
+        ref.current?.scrollToItem({
+          item: highlightedPostItem.current,
+          animated: false,
+        })
       } else {
         // Measure synchronously to avoid a layout jump.
         const domNode = highlightedPostRef.current
         if (domNode) {
+          // @ts-ignore web only
           const pageY = (domNode as any as Element).getBoundingClientRect().top
           onMeasure(pageY)
         }
@@ -232,6 +233,17 @@ function PostThreadLoaded({
       needsScrollAdjustment.current = false
     }
   }, [thread])
+
+  // Callback for whenever the scroll fails. We need to wait a few ms for the render to finish, at which point
+  // flatlist can scroll to our item
+  const onScrollToIndexFailed = React.useCallback(() => {
+    setTimeout(() => {
+      ref.current?.scrollToItem({
+        item: highlightedPostItem.current,
+        animated: false,
+      })
+    }, 5)
+  }, [])
 
   const onPTR = React.useCallback(async () => {
     setIsPTRing(true)
@@ -320,9 +332,13 @@ function PostThreadLoaded({
         const next = isThreadPost(posts[index - 1])
           ? (posts[index - 1] as ThreadPost)
           : undefined
+
+        if (item.ctx.isHighlightedPost) {
+          highlightedPostItem.current = item
+        }
+
         return (
-          <View
-            ref={item.ctx.isHighlightedPost ? highlightedPostRef : undefined}>
+          <View>
             <PostThreadItem
               post={item.post}
               record={item.record}
@@ -370,6 +386,7 @@ function PostThreadLoaded({
           ? MAINTAIN_VISIBLE_CONTENT_POSITION
           : undefined
       }
+      onScrollToIndexFailed={onScrollToIndexFailed}
       keyExtractor={item => item._reactKey}
       renderItem={renderItem}
       refreshing={isPTRing}
