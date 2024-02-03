@@ -45,7 +45,7 @@ import {Splash} from '#/Splash'
 import {Provider as PortalProvider} from '#/components/Portal'
 import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
-import {FlashListRepro} from '#/flashListRepro'
+import {FlatListRepro} from '#/flashListRepro'
 
 SplashScreen.preventAutoHideAsync()
 
@@ -81,7 +81,8 @@ function InnerApp() {
                   <RootSiblingParent>
                     <GestureHandlerRootView style={s.h100pct}>
                       <TestCtrls />
-                      <FlashListRepro />
+                      <FlatListRepro />
+                      {/*<Shell />*/}
                     </GestureHandlerRootView>
                   </RootSiblingParent>
                 </ThemeProvider>

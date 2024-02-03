@@ -1,86 +1,107 @@
 import React from 'react'
 import {
-  SafeAreaView,
   View,
   Text,
-  ListRenderItemInfo,
-  Button,
+  SafeAreaView,
   FlatList,
-  FlatListProps,
-  RefreshControl,
+  Button,
+  ListRenderItemInfo,
 } from 'react-native'
 
-// We'll try just adding 10 items at a time for now. Might need to adjust this
-const dataParts = [150, 33, 56, 40, 38, 50, 42, 73, 89, 48]
-
-const getShuffledData = () => {
-  return dataParts.sort(() => (Math.random() > 0.5 ? 1 : -1))
+type Item = {
+  id: string
+  value: number
 }
 
-const renderItem = ({item, index}: ListRenderItemInfo<number>) => {
-  const backgroundColor = index % 2 === 0 ? 'green' : 'red'
+// Generate unique key list item.
+const generateUniqueKey = () => `_${Math.random().toString(36).substr(2, 9)}`
+
+const initialData = Array.from(Array(10).keys()).map(n => ({
+  id: generateUniqueKey(),
+  value: n,
+}))
+
+const generateHeight = () => {
+  return Math.round(Math.random() * (300 - 100 + 1) + 100)
+}
+
+function ListItem({item, shouldResize}: {item: Item; shouldResize: boolean}) {
+  const color = item.value % 2 === 0 ? 'green' : 'red'
+  const [height, setHeight] = React.useState(generateHeight())
+
+  // There should be the possibility of the item resizing
+  // 20% chance
+  React.useEffect(() => {
+    if (shouldResize && item.value < 0) {
+      setTimeout(() => {
+        setHeight(generateHeight())
+      }, 1500)
+    }
+  }, [item, shouldResize])
+
   return (
-    <View
-      style={{
-        width: '100%',
-        height: item * 3,
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor,
-      }}>
-      <Text>Element #{index + 1}</Text>
+    <View style={{width: '100%', backgroundColor: color, height}}>
+      <Text>List item: {item.value}</Text>
     </View>
   )
 }
 
-// These are the props that we always set on `List`
-const initialProps: Partial<FlatListProps<number>> = {
-  scrollIndicatorInsets: {right: 1},
-  scrollEventThrottle: 1,
-  style: {flex: 1, paddingTop: 0},
-}
+export function FlatListRepro() {
+  const [numToAdd, setNumToAdd] = React.useState(10)
+  const [numbers, setNumbers] = React.useState(initialData)
+  const [shouldResize, setShouldResize] = React.useState(false)
 
-export function FlashListRepro() {
-  const [data, setData] = React.useState<number[]>(dataParts)
-  const [refreshing, setRefreshing] = React.useState<boolean>(false)
+  const addAbove = () => {
+    setNumbers(prev => {
+      const additionalNumbers = Array.from(Array(numToAdd).keys())
+        .map(n => ({
+          id: generateUniqueKey(),
+          value: prev[0].value - n - 1,
+        }))
+        .reverse()
 
-  // Simulate a refresh
-  React.useEffect(() => {
-    if (refreshing) {
-      setTimeout(() => {
-        setData(dataParts)
-        setRefreshing(false)
-      }, 1500)
-    }
-  }, [refreshing])
+      return additionalNumbers.concat(prev)
+    })
+  }
 
-  const onAddDataBelow = React.useCallback(() => {
-    setData(prev => [...prev, ...getShuffledData()])
-  }, [])
-
-  const onAddDataAbove = React.useCallback(() => {
-    setData(prev => [...getShuffledData(), ...prev])
-  }, [])
+  const renderItem = React.useCallback(
+    ({item}: ListRenderItemInfo<Item>) => (
+      <ListItem item={item} shouldResize={shouldResize} />
+    ),
+    [shouldResize],
+  )
 
   return (
     <SafeAreaView style={{flex: 1}}>
-      <View style={{flexDirection: 'row'}}>
-        <Button title="Add below" onPress={onAddDataBelow} />
-        <Button title="Add above" onPress={onAddDataAbove} />
-        <Button title="Reset" onPress={() => setData(dataParts)} />
+      <View style={{flexDirection: 'row', alignItems: 'center'}}>
+        <Button title="Add Above" onPress={addAbove} />
+        <Button
+          title={`Set Should Resize (${shouldResize})`}
+          onPress={() => setShouldResize(prev => !prev)}
+        />
+        <Button title="Reset" onPress={() => setNumbers(initialData)} />
       </View>
-      <FlatList<number>
-        {...initialProps}
-        data={data}
-        renderItem={renderItem}
-        scrollIndicatorInsets={{right: 1}}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => setRefreshing(true)}
-          />
-        }
-      />
+      <View style={{flexDirection: 'row', alignItems: 'center'}}>
+        <Button
+          title="Add More"
+          onPress={() => setNumToAdd(prev => prev + 10)}
+        />
+        <Button
+          title="Add Less"
+          onPress={() => setNumToAdd(prev => prev - 10)}
+        />
+        <Text>Adding: {numToAdd}</Text>
+      </View>
+      <View>
+        <FlatList
+          data={numbers}
+          keyExtractor={item => item.id}
+          maintainVisibleContentPosition={{
+            minIndexForVisible: 1,
+          }}
+          renderItem={renderItem}
+        />
+      </View>
     </SafeAreaView>
   )
 }
