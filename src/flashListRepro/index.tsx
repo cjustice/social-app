@@ -6,6 +6,7 @@ import {
   FlatList,
   Button,
   ListRenderItemInfo,
+  Dimensions,
 } from 'react-native'
 
 type Item = {
@@ -16,11 +17,13 @@ type Item = {
 // Generate unique key list item.
 const generateUniqueKey = () => `_${Math.random().toString(36).substr(2, 9)}`
 
-const initialData = Array.from(Array(10).keys()).map(n => ({
+// Initial data for easy reset
+const initialData = Array.from(Array(1).keys()).map(n => ({
   id: generateUniqueKey(),
   value: n,
 }))
 
+// Generate a random height for each component
 const generateHeight = () => {
   return Math.round(Math.random() * (300 - 100 + 1) + 100)
 }
@@ -28,7 +31,7 @@ const generateHeight = () => {
 function ListItem({
   item,
   shouldResize,
-  reword,
+  reword, // Prop that we can change for a re-render
 }: {
   item: Item
   shouldResize: boolean
@@ -37,8 +40,7 @@ function ListItem({
   const color = item.value % 2 === 0 ? 'green' : 'red'
   const [height, setHeight] = React.useState(generateHeight())
 
-  // There should be the possibility of the item resizing
-  // 20% chance
+  // Resize the component if enabled
   React.useEffect(() => {
     if (shouldResize && item.value < 0) {
       setTimeout(() => {
@@ -47,13 +49,25 @@ function ListItem({
     }
   }, [item, shouldResize])
 
+  let now = performance.now()
+  while (performance.now() - now < 10) {
+    // do nothing
+  }
+
   return (
-    <View style={{width: '100%', backgroundColor: color, height}}>
+    <View
+      style={{
+        width: '100%',
+        backgroundColor: color,
+        height: item.value === 0 ? Dimensions.get('screen').height : height,
+      }}>
       <Text>List item: {item.value}</Text>
       {reword && <Text>Big!</Text>}
     </View>
   )
 }
+
+const ListItemMemo = React.memo(ListItem)
 
 export function FlatListRepro() {
   const [numToAdd, setNumToAdd] = React.useState(10)
@@ -76,7 +90,9 @@ export function FlatListRepro() {
   const renderItem = React.useCallback(
     ({item}: ListRenderItemInfo<Item>) => {
       if (numbers.length > 20 && item.value === 0) {
-        return <ListItem item={item} shouldResize={shouldResize} reword />
+        return (
+          <ListItemMemo item={item} shouldResize={shouldResize} reword={true} />
+        )
       }
 
       return <ListItem item={item} shouldResize={shouldResize} reword={false} />
@@ -110,12 +126,9 @@ export function FlatListRepro() {
           data={numbers}
           keyExtractor={item => item.id}
           maintainVisibleContentPosition={{
-            minIndexForVisible: 1,
+            minIndexForVisible: 0,
           }}
           renderItem={renderItem}
-          initialNumToRender={1}
-          maxToRenderPerBatch={1}
-          windowSize={3}
         />
       </View>
     </SafeAreaView>
