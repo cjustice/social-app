@@ -9,6 +9,15 @@ import {
   Dimensions,
 } from 'react-native'
 
+/**
+ * To repro:
+ * - On initial render, we can add 10 or 20 items to the list without issue while maxToRenderPerBatch is set to 20.
+ * - If we increase this number to 30, we will get a jump in position after adding the items above.
+ * - If we then increase the maxToRenderPerBatch to 30, we can add 30 items above without issue.
+ *
+ * Notice that the maxToRenderPerBatch seems to need to be set to >= the number of items we are adding.
+ */
+
 // Generate unique key list item.
 const generateUniqueKey = () => `_${Math.random().toString(36).substr(2, 9)}`
 
@@ -20,11 +29,6 @@ const initialData = Array.from(Array(5).keys()).map(n => ({
 
 function ListItemInner({item}) {
   const color = item.value % 2 === 0 ? 'green' : 'red'
-
-  let now = performance.now()
-  while (performance.now() - now < 10) {
-    // do nothing
-  }
 
   return (
     <View
@@ -57,7 +61,7 @@ export function FlatListRepro() {
     })
   }
 
-  const renderItem = React.useCallback(({item}: ListRenderItemInfo<Item>) => {
+  const renderItem = React.useCallback(({item}) => {
     return <ListItem item={item} />
   }, [])
 
@@ -86,6 +90,8 @@ export function FlatListRepro() {
             minIndexForVisible: 0,
           }}
           renderItem={renderItem}
+          // If we render all of them at once, there is no jump
+          maxToRenderPerBatch={20}
         />
       </View>
     </SafeAreaView>
