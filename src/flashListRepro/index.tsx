@@ -25,7 +25,15 @@ const generateHeight = () => {
   return Math.round(Math.random() * (300 - 100 + 1) + 100)
 }
 
-function ListItem({item, shouldResize}: {item: Item; shouldResize: boolean}) {
+function ListItem({
+  item,
+  shouldResize,
+  reword,
+}: {
+  item: Item
+  shouldResize: boolean
+  reword: boolean
+}) {
   const color = item.value % 2 === 0 ? 'green' : 'red'
   const [height, setHeight] = React.useState(generateHeight())
 
@@ -42,6 +50,7 @@ function ListItem({item, shouldResize}: {item: Item; shouldResize: boolean}) {
   return (
     <View style={{width: '100%', backgroundColor: color, height}}>
       <Text>List item: {item.value}</Text>
+      {reword && <Text>Big!</Text>}
     </View>
   )
 }
@@ -65,10 +74,14 @@ export function FlatListRepro() {
   }
 
   const renderItem = React.useCallback(
-    ({item}: ListRenderItemInfo<Item>) => (
-      <ListItem item={item} shouldResize={shouldResize} />
-    ),
-    [shouldResize],
+    ({item}: ListRenderItemInfo<Item>) => {
+      if (numbers.length > 20 && item.value === 0) {
+        return <ListItem item={item} shouldResize={shouldResize} reword />
+      }
+
+      return <ListItem item={item} shouldResize={shouldResize} reword={false} />
+    },
+    [shouldResize, numbers],
   )
 
   return (
@@ -100,6 +113,9 @@ export function FlatListRepro() {
             minIndexForVisible: 1,
           }}
           renderItem={renderItem}
+          initialNumToRender={1}
+          maxToRenderPerBatch={1}
+          windowSize={3}
         />
       </View>
     </SafeAreaView>
