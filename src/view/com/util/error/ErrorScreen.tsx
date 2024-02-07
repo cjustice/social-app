@@ -29,6 +29,8 @@ export function ErrorScreen({
   const pal = usePalette('default')
   const {_} = useLingui()
 
+  console.log(title)
+
   return (
     <CenteredView testID={testID} style={[styles.outer, pal.view]}>
       <View style={styles.errorIconContainer}>
@@ -83,7 +85,6 @@ export function ErrorScreen({
 
 const styles = StyleSheet.create({
   outer: {
-    flex: 1,
     paddingVertical: 30,
     paddingHorizontal: 14,
   },
