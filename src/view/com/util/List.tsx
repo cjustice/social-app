@@ -3,7 +3,12 @@ import {FlatListProps, RefreshControl} from 'react-native'
 import {FlatList_INTERNAL} from './Views'
 import {addStyle} from 'lib/styles'
 import {useScrollHandlers} from '#/lib/ScrollContext'
-import {runOnJS, useSharedValue} from 'react-native-reanimated'
+import {
+  runOnJS,
+  SharedValue,
+  useAnimatedReaction,
+  useSharedValue,
+} from 'react-native-reanimated'
 import {useAnimatedScrollHandler} from '#/lib/hooks/useAnimatedScrollHandler_FIXED'
 import {usePalette} from '#/lib/hooks/usePalette'
 
@@ -18,6 +23,7 @@ export type ListProps<ItemT> = Omit<
   headerOffset?: number
   refreshing?: boolean
   onRefresh?: () => void
+  storedScrollOffset?: SharedValue<number>
 }
 export type ListRef = React.MutableRefObject<FlatList_INTERNAL | null>
 
@@ -30,6 +36,7 @@ function ListImpl<ItemT>(
     onRefresh,
     headerOffset,
     style,
+    storedScrollOffset,
     ...props
   }: ListProps<ItemT>,
   ref: React.Ref<ListMethods>,
@@ -51,6 +58,9 @@ function ListImpl<ItemT>(
     },
     onScroll(e, ctx) {
       contextScrollHandlers.onScroll?.(e, ctx)
+      if (storedScrollOffset) {
+        storedScrollOffset.value = e.contentOffset.y
+      }
 
       const didScrollDown = e.contentOffset.y > SCROLLED_DOWN_LIMIT
       if (isScrolledDown.value !== didScrollDown) {

@@ -32,6 +32,12 @@ import {msg} from '@lingui/macro'
 import {useLingui} from '@lingui/react'
 import {DiscoverFallbackHeader} from './DiscoverFallbackHeader'
 import {FALLBACK_MARKER_POST} from '#/lib/api/feed/home'
+import {useProfileHeaderTranslation} from 'view/screens/Profile'
+import {
+  runOnJS,
+  useAnimatedReaction,
+  useSharedValue,
+} from 'react-native-reanimated'
 
 const LOADING_ITEM = {_reactKey: '__loading__'}
 const EMPTY_FEED_ITEM = {_reactKey: '__empty__'}
@@ -301,6 +307,34 @@ let Feed = ({
     )
   }, [isFetchingNextPage, shouldRenderEndOfFeed, renderEndOfFeed, headerOffset])
 
+  const headerTranslationY = useProfileHeaderTranslation()
+  const storedScrollOffset = useSharedValue(0)
+
+  const scrollToOffset = (offset: number) => {
+    scrollElRef?.current?.scrollToOffset({offset, animated: false})
+  }
+
+  useAnimatedReaction(
+    () => headerTranslationY.value,
+    (c, p) => {
+      if (!enabled || c === p) {
+        console.log('no scroll')
+      } else {
+        console.log('scroll')
+      }
+
+      c = -c
+      if (p) {
+        p = -p
+      } else {
+        p = 0
+      }
+
+      runOnJS(scrollToOffset)(storedScrollOffset.value + (c - p))
+      // console.log('offset:', storedScrollOffset.value)
+    },
+  )
+
   return (
     <View testID={testID} style={style}>
       <List
@@ -327,6 +361,7 @@ let Feed = ({
         desktopFixedHeight={
           desktopFixedHeightOffset ? desktopFixedHeightOffset : true
         }
+        storedScrollOffset={storedScrollOffset}
       />
     </View>
   )
