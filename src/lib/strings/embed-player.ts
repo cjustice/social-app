@@ -352,7 +352,7 @@ export function parseEmbedPlayerFromUrl(
       return {
         type: 'internet_archive',
         source: 'internetArchive',
-        playerUri: `https://archive.org/embed/${id}`,
+        playerUri: `https://archive.org/embed/${id}?autoplay=true`,
       }
     }
   }
@@ -373,6 +373,7 @@ export function getPlayerHeight({
     case 'youtube_video':
     case 'twitch_video':
     case 'vimeo_video':
+    case 'internet_archive':
       return (width / 16) * 9
     case 'youtube_short':
       if (SCREEN_HEIGHT < 600) {
