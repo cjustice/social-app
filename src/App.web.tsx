@@ -8,19 +8,21 @@ import {RootSiblingParent} from 'react-native-root-siblings'
 import 'view/icons'
 
 import {ThemeProvider as Alf} from '#/alf'
+import {useColorModeTheme} from '#/alf/util/useColorModeTheme'
 import {init as initPersistedState} from '#/state/persisted'
-import {useColorMode} from 'state/shell'
 import {Shell} from 'view/shell/index'
 import {ToastContainer} from 'view/com/util/Toast.web'
 import {ThemeProvider} from 'lib/ThemeContext'
 import {queryClient} from 'lib/react-query'
 import {Provider as ShellStateProvider} from 'state/shell'
 import {Provider as ModalStateProvider} from 'state/modals'
+import {Provider as DialogStateProvider} from 'state/dialogs'
 import {Provider as LightboxStateProvider} from 'state/lightbox'
 import {Provider as MutedThreadsProvider} from 'state/muted-threads'
 import {Provider as InvitesStateProvider} from 'state/invites'
 import {Provider as PrefsStateProvider} from 'state/preferences'
 import {Provider as LoggedOutViewProvider} from 'state/shell/logged-out'
+import {Provider as SelectedFeedProvider} from 'state/shell/selected-feed'
 import I18nProvider from './locale/i18nProvider'
 import {
   Provider as SessionProvider,
@@ -29,13 +31,12 @@ import {
 } from 'state/session'
 import {Provider as UnreadNotifsProvider} from 'state/queries/notifications/unread'
 import * as persisted from '#/state/persisted'
-import {useColorModeTheme} from '#/alf/util/useColorModeTheme'
+import {Provider as PortalProvider} from '#/components/Portal'
 
 function InnerApp() {
   const {isInitialLoad, currentAccount} = useSession()
   const {resumeSession} = useSessionApi()
-  const colorMode = useColorMode()
-  const theme = useColorModeTheme(colorMode)
+  const theme = useColorModeTheme()
 
   // init
   useEffect(() => {
@@ -52,17 +53,19 @@ function InnerApp() {
         // Resets the entire tree below when it changes:
         key={currentAccount?.did}>
         <LoggedOutViewProvider>
-          <UnreadNotifsProvider>
-            <ThemeProvider theme={colorMode}>
-              {/* All components should be within this provider */}
-              <RootSiblingParent>
-                <SafeAreaProvider>
-                  <Shell />
-                </SafeAreaProvider>
-              </RootSiblingParent>
-              <ToastContainer />
-            </ThemeProvider>
-          </UnreadNotifsProvider>
+          <SelectedFeedProvider>
+            <UnreadNotifsProvider>
+              <ThemeProvider theme={theme}>
+                {/* All components should be within this provider */}
+                <RootSiblingParent>
+                  <SafeAreaProvider>
+                    <Shell />
+                  </SafeAreaProvider>
+                </RootSiblingParent>
+                <ToastContainer />
+              </ThemeProvider>
+            </UnreadNotifsProvider>
+          </SelectedFeedProvider>
         </LoggedOutViewProvider>
       </React.Fragment>
     </Alf>
@@ -92,11 +95,15 @@ function App() {
             <MutedThreadsProvider>
               <InvitesStateProvider>
                 <ModalStateProvider>
-                  <LightboxStateProvider>
-                    <I18nProvider>
-                      <InnerApp />
-                    </I18nProvider>
-                  </LightboxStateProvider>
+                  <DialogStateProvider>
+                    <LightboxStateProvider>
+                      <I18nProvider>
+                        <PortalProvider>
+                          <InnerApp />
+                        </PortalProvider>
+                      </I18nProvider>
+                    </LightboxStateProvider>
+                  </DialogStateProvider>
                 </ModalStateProvider>
               </InvitesStateProvider>
             </MutedThreadsProvider>

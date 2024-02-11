@@ -1,4 +1,4 @@
-import React from 'react'
+import React, {useCallback} from 'react'
 import {
   StyleSheet,
   StyleProp,
@@ -22,7 +22,6 @@ import {Link} from '../Link'
 import {ImageLayoutGrid} from '../images/ImageLayoutGrid'
 import {useLightboxControls, ImagesLightbox} from '#/state/lightbox'
 import {usePalette} from 'lib/hooks/usePalette'
-import {useWebMediaQueries} from 'lib/hooks/useWebMediaQueries'
 import {ExternalLinkEmbed} from './ExternalLinkEmbed'
 import {MaybeQuoteEmbed} from './QuoteEmbed'
 import {AutoSizedImage} from '../images/AutoSizedImage'
@@ -30,6 +29,8 @@ import {ListEmbed} from './ListEmbed'
 import {isCauseALabelOnUri, isQuoteBlurred} from 'lib/moderation'
 import {FeedSourceCard} from 'view/com/feeds/FeedSourceCard'
 import {ContentHider} from '../moderation/ContentHider'
+import {isNative} from '#/platform/detection'
+import {shareUrl} from '#/lib/sharing'
 
 type Embed =
   | AppBskyEmbedRecord.View
@@ -51,7 +52,16 @@ export function PostEmbeds({
 }) {
   const pal = usePalette('default')
   const {openLightbox} = useLightboxControls()
-  const {isMobile} = useWebMediaQueries()
+
+  const externalUri = AppBskyEmbedExternal.isView(embed)
+    ? embed.external.uri
+    : null
+
+  const onShareExternal = useCallback(() => {
+    if (externalUri && isNative) {
+      shareUrl(externalUri)
+    }
+  }, [externalUri])
 
   // quote post with media
   // =
@@ -129,10 +139,7 @@ export function PostEmbeds({
               dimensionsHint={aspectRatio}
               onPress={() => _openLightbox(0)}
               onPressIn={() => onPressIn(0)}
-              style={[
-                styles.singleImage,
-                isMobile && styles.singleImageMobile,
-              ]}>
+              style={[styles.singleImage]}>
               {alt === '' ? null : (
                 <View style={styles.altContainer}>
                   <Text style={styles.alt} accessible={false}>
@@ -151,11 +158,7 @@ export function PostEmbeds({
             images={embed.images}
             onPress={_openLightbox}
             onPressIn={onPressIn}
-            style={
-              embed.images.length === 1
-                ? [styles.singleImage, isMobile && styles.singleImageMobile]
-                : undefined
-            }
+            style={embed.images.length === 1 ? [styles.singleImage] : undefined}
           />
         </View>
       )
@@ -173,7 +176,8 @@ export function PostEmbeds({
         anchorNoUnderline
         href={link.uri}
         style={[styles.extOuter, pal.view, pal.borderDark, style]}
-        hoverStyle={{borderColor: pal.colors.borderLinkHover}}>
+        hoverStyle={{borderColor: pal.colors.borderLinkHover}}
+        onLongPress={onShareExternal}>
         <ExternalLinkEmbed link={link} />
       </Link>
     )
@@ -188,10 +192,6 @@ const styles = StyleSheet.create({
   },
   singleImage: {
     borderRadius: 8,
-    maxHeight: 1000,
-  },
-  singleImageMobile: {
-    maxHeight: 500,
   },
   extOuter: {
     borderWidth: 1,

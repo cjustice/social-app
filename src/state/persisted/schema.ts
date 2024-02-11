@@ -12,11 +12,13 @@ const accountSchema = z.object({
   emailConfirmed: z.boolean().optional(),
   refreshJwt: z.string().optional(), // optional because it can expire
   accessJwt: z.string().optional(), // optional because it can expire
+  deactivated: z.boolean().optional(),
 })
 export type PersistedAccount = z.infer<typeof accountSchema>
 
 export const schema = z.object({
   colorMode: z.enum(['system', 'light', 'dark']),
+  darkTheme: z.enum(['dim', 'dark']).optional(),
   session: z.object({
     accounts: z.array(accountSchema),
     currentAccount: accountSchema.optional(),
@@ -55,11 +57,13 @@ export const schema = z.object({
   }),
   hiddenPosts: z.array(z.string()).optional(), // should move to server
   useInAppBrowser: z.boolean().optional(),
+  lastSelectedHomeFeed: z.string().optional(),
 })
 export type Schema = z.infer<typeof schema>
 
 export const defaults: Schema = {
   colorMode: 'system',
+  darkTheme: 'dim',
   session: {
     accounts: [],
     currentAccount: undefined,
@@ -87,4 +91,5 @@ export const defaults: Schema = {
   },
   hiddenPosts: [],
   useInAppBrowser: undefined,
+  lastSelectedHomeFeed: undefined,
 }

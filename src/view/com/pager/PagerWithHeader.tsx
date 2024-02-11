@@ -18,7 +18,6 @@ import Animated, {
 } from 'react-native-reanimated'
 import {Pager, PagerRef, RenderTabBarFnProps} from 'view/com/pager/Pager'
 import {TabBar} from './TabBar'
-import {useWebMediaQueries} from 'lib/hooks/useWebMediaQueries'
 import {useNonReactiveCallback} from '#/lib/hooks/useNonReactiveCallback'
 import {ListMethods} from '../util/List'
 import {ScrollProvider} from '#/lib/ScrollContext'
@@ -62,26 +61,19 @@ export const PagerWithHeader = React.forwardRef<PagerRef, PagerWithHeaderProps>(
     const headerHeight = headerOnlyHeight + tabBarHeight
 
     // capture the header bar sizing
-    const onTabBarLayout = React.useCallback(
-      (evt: LayoutChangeEvent) => {
-        const height = evt.nativeEvent.layout.height
-        if (height > 0) {
-          // The rounding is necessary to prevent jumps on iOS
-          setTabBarHeight(Math.round(height))
-        }
-      },
-      [setTabBarHeight],
-    )
-    const onHeaderOnlyLayout = React.useCallback(
-      (evt: LayoutChangeEvent) => {
-        const height = evt.nativeEvent.layout.height
-        if (height > 0) {
-          // The rounding is necessary to prevent jumps on iOS
-          setHeaderOnlyHeight(Math.round(height))
-        }
-      },
-      [setHeaderOnlyHeight],
-    )
+    const onTabBarLayout = useNonReactiveCallback((evt: LayoutChangeEvent) => {
+      const height = evt.nativeEvent.layout.height
+      if (height > 0) {
+        // The rounding is necessary to prevent jumps on iOS
+        setTabBarHeight(Math.round(height))
+      }
+    })
+    const onHeaderOnlyLayout = useNonReactiveCallback((height: number) => {
+      if (height > 0) {
+        // The rounding is necessary to prevent jumps on iOS
+        setHeaderOnlyHeight(Math.round(height))
+      }
+    })
 
     const renderTabBar = React.useCallback(
       (props: RenderTabBarFnProps) => {
@@ -184,8 +176,7 @@ export const PagerWithHeader = React.forwardRef<PagerRef, PagerWithHeaderProps>(
         initialPage={initialPage}
         onPageSelected={onPageSelectedInner}
         onPageSelecting={onPageSelecting}
-        renderTabBar={renderTabBar}
-        tabBarPosition="top">
+        renderTabBar={renderTabBar}>
         {toArray(children)
           .filter(Boolean)
           .map((child, i) => {
@@ -230,12 +221,11 @@ let PagerTabBar = ({
   testID?: string
   scrollY: SharedValue<number>
   renderHeader?: () => JSX.Element
-  onHeaderOnlyLayout: (e: LayoutChangeEvent) => void
+  onHeaderOnlyLayout: (height: number) => void
   onTabBarLayout: (e: LayoutChangeEvent) => void
   onCurrentPageSelected?: (index: number) => void
   onSelect?: (index: number) => void
 }): React.ReactNode => {
-  const {isMobile} = useWebMediaQueries()
   const headerTransform = useAnimatedStyle(() => ({
     transform: [
       {
@@ -243,15 +233,40 @@ let PagerTabBar = ({
       },
     ],
   }))
+  const pendingHeaderHeight = React.useRef<null | number>(null)
   return (
     <Animated.View
       pointerEvents="box-none"
-      style={[
-        isMobile ? styles.tabBarMobile : styles.tabBarDesktop,
-        headerTransform,
-      ]}>
-      <View onLayout={onHeaderOnlyLayout} pointerEvents="box-none">
+      style={[styles.tabBarMobile, headerTransform]}>
+      <View
+        pointerEvents="box-none"
+        collapsable={false}
+        onLayout={e => {
+          if (isHeaderReady) {
+            onHeaderOnlyLayout(e.nativeEvent.layout.height)
+            pendingHeaderHeight.current = null
+          } else {
+            // Stash it away for when `isHeaderReady` turns `true` later.
+            pendingHeaderHeight.current = e.nativeEvent.layout.height
+          }
+        }}>
         {renderHeader?.()}
+        {
+          // When `isHeaderReady` turns `true`, we want to send the parent layout.
+          // However, if that didn't lead to a layout change, parent `onLayout` wouldn't get called again.
+          // We're conditionally rendering an empty view so that we can send the last measurement.
+          isHeaderReady && (
+            <View
+              onLayout={() => {
+                // We're assuming the parent `onLayout` already ran (parent -> child ordering).
+                if (pendingHeaderHeight.current !== null) {
+                  onHeaderOnlyLayout(pendingHeaderHeight.current)
+                  pendingHeaderHeight.current = null
+                }
+              }}
+            />
+          )
+        }
       </View>
       <View
         onLayout={onTabBarLayout}
@@ -324,14 +339,6 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     width: '100%',
-  },
-  tabBarDesktop: {
-    position: 'absolute',
-    zIndex: 1,
-    top: 0,
-    // @ts-ignore Web only -prf
-    left: 'calc(50% - 299px)',
-    width: 598,
   },
 })
 

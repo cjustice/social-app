@@ -88,11 +88,17 @@ function FeedsTabBarTablet(
   const navigation = useNavigation<NavigationProp>()
   const {headerMinimalShellTransform} = useMinimalShellMode()
   const {headerHeight} = useShellLayout()
-  const pinnedDisplayNames = hasSession ? feeds.map(f => f.displayName) : []
-  const showFeedsLinkInTabBar = hasSession && !hasPinnedCustom
-  const items = showFeedsLinkInTabBar
-    ? pinnedDisplayNames.concat('Feeds ✨')
-    : pinnedDisplayNames
+
+  const items = React.useMemo(() => {
+    if (!hasSession) return []
+
+    const pinnedNames = feeds.map(f => f.displayName)
+
+    if (!hasPinnedCustom) {
+      return pinnedNames.concat('Feeds ✨')
+    }
+    return pinnedNames
+  }, [hasSession, hasPinnedCustom, feeds])
 
   const onPressDiscoverFeeds = React.useCallback(() => {
     if (isWeb) {
@@ -105,19 +111,19 @@ function FeedsTabBarTablet(
 
   const onSelect = React.useCallback(
     (index: number) => {
-      if (showFeedsLinkInTabBar && index === items.length - 1) {
+      if (hasSession && !hasPinnedCustom && index === items.length - 1) {
         onPressDiscoverFeeds()
       } else if (props.onSelect) {
         props.onSelect(index)
       }
     },
-    [items.length, onPressDiscoverFeeds, props, showFeedsLinkInTabBar],
+    [items.length, onPressDiscoverFeeds, props, hasSession, hasPinnedCustom],
   )
 
   return (
     // @ts-ignore the type signature for transform wrong here, translateX and translateY need to be in separate objects -prf
     <Animated.View
-      style={[pal.view, styles.tabBar, headerMinimalShellTransform]}
+      style={[pal.view, pal.border, styles.tabBar, headerMinimalShellTransform]}
       onLayout={e => {
         headerHeight.value = e.nativeEvent.layout.height
       }}>
@@ -134,13 +140,16 @@ function FeedsTabBarTablet(
 
 const styles = StyleSheet.create({
   tabBar: {
-    position: 'absolute',
+    // @ts-ignore Web only
+    position: 'sticky',
     zIndex: 1,
     // @ts-ignore Web only -prf
-    left: 'calc(50% - 299px)',
-    width: 598,
+    left: 'calc(50% - 300px)',
+    width: 600,
     top: 0,
     flexDirection: 'row',
     alignItems: 'center',
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
   },
 })

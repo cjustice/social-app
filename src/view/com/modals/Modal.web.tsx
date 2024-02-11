@@ -3,12 +3,12 @@ import {TouchableWithoutFeedback, StyleSheet, View} from 'react-native'
 import Animated, {FadeIn, FadeOut} from 'react-native-reanimated'
 import {usePalette} from 'lib/hooks/usePalette'
 import {useWebMediaQueries} from 'lib/hooks/useWebMediaQueries'
+import {useWebBodyScrollLock} from '#/lib/hooks/useWebBodyScrollLock'
 
 import {useModals, useModalControls} from '#/state/modals'
 import type {Modal as ModalIface} from '#/state/modals'
 import * as ConfirmModal from './Confirm'
 import * as EditProfileModal from './EditProfile'
-import * as ProfilePreviewModal from './ProfilePreview'
 import * as ServerInputModal from './ServerInput'
 import * as ReportModal from './report/Modal'
 import * as AppealLabelModal from './AppealLabel'
@@ -33,11 +33,13 @@ import * as ModerationDetailsModal from './ModerationDetails'
 import * as BirthDateSettingsModal from './BirthDateSettings'
 import * as VerifyEmailModal from './VerifyEmail'
 import * as ChangeEmailModal from './ChangeEmail'
+import * as ChangePasswordModal from './ChangePassword'
 import * as LinkWarningModal from './LinkWarning'
 import * as EmbedConsentModal from './EmbedConsent'
 
 export function ModalsContainer() {
   const {isModalActive, activeModals} = useModals()
+  useWebBodyScrollLock(isModalActive)
 
   if (!isModalActive) {
     return null
@@ -63,7 +65,11 @@ function Modal({modal}: {modal: ModalIface}) {
   }
 
   const onPressMask = () => {
-    if (modal.name === 'crop-image' || modal.name === 'edit-image') {
+    if (
+      modal.name === 'crop-image' ||
+      modal.name === 'edit-image' ||
+      modal.name === 'alt-text-image'
+    ) {
       return // dont close on mask presses during crop
     }
     closeModal()
@@ -78,8 +84,6 @@ function Modal({modal}: {modal: ModalIface}) {
     element = <ConfirmModal.Component {...modal} />
   } else if (modal.name === 'edit-profile') {
     element = <EditProfileModal.Component {...modal} />
-  } else if (modal.name === 'profile-preview') {
-    element = <ProfilePreviewModal.Component {...modal} />
   } else if (modal.name === 'server-input') {
     element = <ServerInputModal.Component {...modal} />
   } else if (modal.name === 'report') {
@@ -128,6 +132,8 @@ function Modal({modal}: {modal: ModalIface}) {
     element = <VerifyEmailModal.Component {...modal} />
   } else if (modal.name === 'change-email') {
     element = <ChangeEmailModal.Component />
+  } else if (modal.name === 'change-password') {
+    element = <ChangePasswordModal.Component />
   } else if (modal.name === 'link-warning') {
     element = <LinkWarningModal.Component {...modal} />
   } else if (modal.name === 'embed-consent') {
@@ -162,7 +168,8 @@ function Modal({modal}: {modal: ModalIface}) {
 
 const styles = StyleSheet.create({
   mask: {
-    position: 'absolute',
+    // @ts-ignore
+    position: 'fixed',
     top: 0,
     left: 0,
     width: '100%',

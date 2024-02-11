@@ -1,4 +1,5 @@
-import {Dimensions, Platform} from 'react-native'
+import {Dimensions} from 'react-native'
+import {isWeb} from 'platform/detection'
 const {height: SCREEN_HEIGHT} = Dimensions.get('window')
 
 export const embedPlayerSources = [
@@ -71,11 +72,12 @@ export function parseEmbedPlayerFromUrl(
   // youtube
   if (urlp.hostname === 'youtu.be') {
     const videoId = urlp.pathname.split('/')[1]
+    const seek = encodeURIComponent(urlp.searchParams.get('t') ?? 0)
     if (videoId) {
       return {
         type: 'youtube_video',
         source: 'youtube',
-        playerUri: `https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=1`,
+        playerUri: `https://bsky.app/iframe/youtube.html?videoId=${videoId}&start=${seek}`,
       }
     }
   }
@@ -87,13 +89,14 @@ export function parseEmbedPlayerFromUrl(
     const [_, page, shortVideoId] = urlp.pathname.split('/')
     const videoId =
       page === 'shorts' ? shortVideoId : (urlp.searchParams.get('v') as string)
+    const seek = encodeURIComponent(urlp.searchParams.get('t') ?? 0)
 
     if (videoId) {
       return {
         type: page === 'shorts' ? 'youtube_short' : 'youtube_video',
         source: page === 'shorts' ? 'youtubeShorts' : 'youtube',
         hideDetails: page === 'shorts' ? true : undefined,
-        playerUri: `https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=1`,
+        playerUri: `https://bsky.app/iframe/youtube.html?videoId=${videoId}&start=${seek}`,
       }
     }
   }
@@ -104,8 +107,10 @@ export function parseEmbedPlayerFromUrl(
     urlp.hostname === 'www.twitch.tv' ||
     urlp.hostname === 'm.twitch.tv'
   ) {
-    const parent =
-      Platform.OS === 'web' ? window.location.hostname : 'localhost'
+    const parent = isWeb
+      ? // @ts-ignore only for web
+        window.location.hostname
+      : 'localhost'
 
     const [_, channelOrVideo, clipOrId, id] = urlp.pathname.split('/')
 

@@ -167,11 +167,7 @@ let FeedItem = ({
     icon = 'user-plus'
     iconStyle = [s.blue3 as FontAwesomeIconStyle]
   } else if (item.type === 'feedgen-like') {
-    action = _(
-      msg`liked your custom feed${
-        item.subjectUri ? ` '${new AtUri(item.subjectUri).rkey}'` : ''
-      }`,
-    )
+    action = _(msg`liked your custom feed`)
     icon = 'HeartIconSolid'
     iconStyle = [
       s.likeColor as FontAwesomeIconStyle,

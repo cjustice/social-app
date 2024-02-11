@@ -17,11 +17,11 @@ export interface PagerRef {
 export interface RenderTabBarFnProps {
   selectedPage: number
   onSelect?: (index: number) => void
+  tabBarAnchor?: JSX.Element | null | undefined // Ignored on native.
 }
 export type RenderTabBarFn = (props: RenderTabBarFnProps) => JSX.Element
 
 interface Props {
-  tabBarPosition?: 'top' | 'bottom'
   initialPage?: number
   renderTabBar: RenderTabBarFn
   onPageSelected?: (index: number) => void
@@ -35,7 +35,6 @@ export const Pager = forwardRef<PagerRef, React.PropsWithChildren<Props>>(
   function PagerImpl(
     {
       children,
-      tabBarPosition = 'top',
       initialPage = 0,
       renderTabBar,
       onPageScrollStateChanged,
@@ -121,11 +120,10 @@ export const Pager = forwardRef<PagerRef, React.PropsWithChildren<Props>>(
 
     return (
       <View testID={testID} style={s.flex1}>
-        {tabBarPosition === 'top' &&
-          renderTabBar({
-            selectedPage,
-            onSelect: onTabBarSelect,
-          })}
+        {renderTabBar({
+          selectedPage,
+          onSelect: onTabBarSelect,
+        })}
         <AnimatedPagerView
           ref={pagerView}
           style={s.flex1}
@@ -135,11 +133,6 @@ export const Pager = forwardRef<PagerRef, React.PropsWithChildren<Props>>(
           onPageScroll={onPageScroll}>
           {children}
         </AnimatedPagerView>
-        {tabBarPosition === 'bottom' &&
-          renderTabBar({
-            selectedPage,
-            onSelect: onTabBarSelect,
-          })}
       </View>
     )
   },

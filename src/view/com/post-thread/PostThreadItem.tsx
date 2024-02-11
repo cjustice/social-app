@@ -23,7 +23,6 @@ import {getTranslatorLink, isPostInLanguage} from '../../../locale/helpers'
 import {PostMeta} from '../util/PostMeta'
 import {PostEmbeds} from '../util/post-embeds'
 import {PostCtrls} from '../util/post-ctrls/PostCtrls'
-import {PostDropdownBtn} from '../util/forms/PostDropdownBtn'
 import {PostHider} from '../util/moderation/PostHider'
 import {ContentHider} from '../util/moderation/ContentHider'
 import {PostAlerts} from '../util/moderation/PostAlerts'
@@ -40,9 +39,9 @@ import {useLingui} from '@lingui/react'
 import {useLanguagePrefs} from '#/state/preferences'
 import {useComposerControls} from '#/state/shell/composer'
 import {useModerationOpts} from '#/state/queries/preferences'
+import {useOpenLink} from '#/state/preferences/in-app-browser'
 import {Shadow, usePostShadow, POST_TOMBSTONE} from '#/state/cache/post-shadow'
 import {ThreadPost} from '#/state/queries/post-thread'
-import {useSession} from '#/state/session'
 import {WhoCanReply} from '../threadgate/WhoCanReply'
 
 export function PostThreadItem({
@@ -161,7 +160,6 @@ let PostThreadItemLoaded = ({
   const {_} = useLingui()
   const langPrefs = useLanguagePrefs()
   const {openComposer} = useComposerControls()
-  const {currentAccount} = useSession()
   const [limitLines, setLimitLines] = React.useState(
     () => countLines(richText?.text) >= MAX_POST_LINES,
   )
@@ -187,9 +185,6 @@ let PostThreadItemLoaded = ({
     return makeProfileLink(post.author, 'post', urip.rkey, 'reposted-by')
   }, [post.uri, post.author])
   const repostsTitle = _(msg`Reposts of this post`)
-  const isModeratedPost =
-    moderation.decisions.post.cause?.type === 'label' &&
-    moderation.decisions.post.cause.label.src !== currentAccount?.did
 
   const translatorUrl = getTranslatorLink(
     record?.text || '',
@@ -216,10 +211,11 @@ let PostThreadItemLoaded = ({
           avatar: post.author.avatar,
         },
         embed: post.embed,
+        moderation,
       },
       onPost: onPostReply,
     })
-  }, [openComposer, post, record, onPostReply])
+  }, [openComposer, post, record, onPostReply, moderation])
 
   const onPressShowMore = React.useCallback(() => {
     setLimitLines(false)
@@ -248,10 +244,9 @@ let PostThreadItemLoaded = ({
           </View>
         )}
 
-        <Link
+        <View
           testID={`postThreadItem-by-${post.author.handle}`}
           style={[styles.outer, styles.outerHighlighted, pal.border, pal.view]}
-          noFeedback
           accessible={false}>
           <PostSandboxWarning />
           <View style={styles.layout}>
@@ -330,23 +325,6 @@ let PostThreadItemLoaded = ({
                 </Link>
               </View>
             </View>
-            <PostDropdownBtn
-              testID="postDropdownBtn"
-              postAuthor={post.author}
-              postCid={post.cid}
-              postUri={post.uri}
-              record={record}
-              richText={richText}
-              showAppealLabelItem={
-                post.author.did === currentAccount?.did && isModeratedPost
-              }
-              style={{
-                paddingVertical: 6,
-                paddingHorizontal: 10,
-                marginLeft: 'auto',
-                width: 40,
-              }}
-            />
           </View>
           <View style={[s.pl10, s.pr10, s.pb10]}>
             <ContentHider
@@ -370,6 +348,7 @@ let PostThreadItemLoaded = ({
                     richText={richText}
                     lineHeight={1.3}
                     style={s.flex1}
+                    selectable
                   />
                 </View>
               ) : undefined}
@@ -435,7 +414,7 @@ let PostThreadItemLoaded = ({
             ) : (
               <></>
             )}
-            <View style={[s.pl10, s.pb5]}>
+            <View style={[s.pl10, s.pr10, s.pb5]}>
               <PostCtrls
                 big
                 post={post}
@@ -445,7 +424,7 @@ let PostThreadItemLoaded = ({
               />
             </View>
           </View>
-        </Link>
+        </View>
         <WhoCanReply post={post} />
       </>
     )
@@ -701,17 +680,23 @@ function ExpandedPostDetails({
 }) {
   const pal = usePalette('default')
   const {_} = useLingui()
+  const openLink = useOpenLink()
+  const onTranslatePress = React.useCallback(
+    () => openLink(translatorUrl),
+    [openLink, translatorUrl],
+  )
   return (
     <View style={[s.flexRow, s.mt2, s.mb10]}>
       <Text style={pal.textLight}>{niceDate(post.indexedAt)}</Text>
       {needsTranslation && (
         <>
-          <Text style={[pal.textLight, s.ml5, s.mr5]}>•</Text>
-          <Link href={translatorUrl} title={_(msg`Translate`)}>
-            <Text style={pal.link}>
-              <Trans>Translate</Trans>
-            </Text>
-          </Link>
+          <Text style={pal.textLight}> &middot; </Text>
+          <Text
+            style={pal.link}
+            title={_(msg`Translate`)}
+            onPress={onTranslatePress}>
+            <Trans>Translate</Trans>
+          </Text>
         </>
       )}
     </View>
@@ -768,6 +753,7 @@ const useStyles = () => {
     },
     postTextLargeContainer: {
       paddingHorizontal: 0,
+      paddingRight: 0,
       paddingBottom: 10,
     },
     translateLink: {

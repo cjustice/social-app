@@ -20,6 +20,11 @@ import {useNavigation} from '@react-navigation/native'
 import {NavigationProp} from 'lib/routes/types'
 import {Logo} from '#/view/icons/Logo'
 
+import {IS_DEV} from '#/env'
+import {atoms} from '#/alf'
+import {Link as Link2} from '#/components/Link'
+import {ColorPalette_Stroke2_Corner0_Rounded as ColorPalette} from '#/components/icons/ColorPalette'
+
 export function FeedsTabBar(
   props: RenderTabBarFnProps & {testID?: string; onPressSelected: () => void},
 ) {
@@ -31,11 +36,17 @@ export function FeedsTabBar(
   const {feeds, hasPinnedCustom} = usePinnedFeedsInfos()
   const {headerHeight} = useShellLayout()
   const {headerMinimalShellTransform} = useMinimalShellMode()
-  const pinnedDisplayNames = hasSession ? feeds.map(f => f.displayName) : []
-  const showFeedsLinkInTabBar = hasSession && !hasPinnedCustom
-  const items = showFeedsLinkInTabBar
-    ? pinnedDisplayNames.concat('Feeds ✨')
-    : pinnedDisplayNames
+
+  const items = React.useMemo(() => {
+    if (!hasSession) return []
+
+    const pinnedNames = feeds.map(f => f.displayName)
+
+    if (!hasPinnedCustom) {
+      return pinnedNames.concat('Feeds ✨')
+    }
+    return pinnedNames
+  }, [hasSession, hasPinnedCustom, feeds])
 
   const onPressFeedsLink = React.useCallback(() => {
     if (isWeb) {
@@ -48,13 +59,13 @@ export function FeedsTabBar(
 
   const onSelect = React.useCallback(
     (index: number) => {
-      if (showFeedsLinkInTabBar && index === items.length - 1) {
+      if (hasSession && !hasPinnedCustom && index === items.length - 1) {
         onPressFeedsLink()
       } else if (props.onSelect) {
         props.onSelect(index)
       }
     },
-    [items.length, onPressFeedsLink, props, showFeedsLinkInTabBar],
+    [items.length, onPressFeedsLink, props, hasSession, hasPinnedCustom],
   )
 
   const onPressAvi = React.useCallback(() => {
@@ -68,7 +79,7 @@ export function FeedsTabBar(
         headerHeight.value = e.nativeEvent.layout.height
       }}>
       <View style={[pal.view, styles.topBar]}>
-        <View style={[pal.view]}>
+        <View style={[pal.view, {width: 100}]}>
           <TouchableOpacity
             testID="viewHeaderDrawerBtn"
             onPress={onPressAvi}
@@ -88,7 +99,21 @@ export function FeedsTabBar(
         <View>
           <Logo width={30} />
         </View>
-        <View style={[pal.view, {width: 18}]}>
+        <View
+          style={[
+            atoms.flex_row,
+            atoms.justify_end,
+            atoms.align_center,
+            atoms.gap_md,
+            pal.view,
+            {width: 100},
+          ]}>
+          {IS_DEV && (
+            <Link2 to="/sys/debug">
+              <ColorPalette size="md" />
+            </Link2>
+          )}
+
           {hasSession && (
             <Link
               testID="viewHeaderHomeFeedPrefsBtn"
@@ -123,7 +148,8 @@ export function FeedsTabBar(
 
 const styles = StyleSheet.create({
   tabBar: {
-    position: 'absolute',
+    // @ts-ignore web-only
+    position: isWeb ? 'fixed' : 'absolute',
     zIndex: 1,
     left: 0,
     right: 0,

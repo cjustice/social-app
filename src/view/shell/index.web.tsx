@@ -11,10 +11,11 @@ import {DrawerContent} from './Drawer'
 import {useWebMediaQueries} from '../../lib/hooks/useWebMediaQueries'
 import {useNavigation} from '@react-navigation/native'
 import {NavigationProp} from 'lib/routes/types'
-import {useAuxClick} from 'lib/hooks/useAuxClick'
 import {t} from '@lingui/macro'
 import {useIsDrawerOpen, useSetDrawerOpen} from '#/state/shell'
 import {useCloseAllActiveElements} from '#/state/util'
+import {useWebBodyScrollLock} from '#/lib/hooks/useWebBodyScrollLock'
+import {Outlet as PortalOutlet} from '#/components/Portal'
 
 function ShellInner() {
   const isDrawerOpen = useIsDrawerOpen()
@@ -23,7 +24,7 @@ function ShellInner() {
   const navigator = useNavigation<NavigationProp>()
   const closeAllActiveElements = useCloseAllActiveElements()
 
-  useAuxClick()
+  useWebBodyScrollLock(isDrawerOpen)
 
   useEffect(() => {
     const unsubscribe = navigator.addListener('state', () => {
@@ -33,14 +34,13 @@ function ShellInner() {
   }, [navigator, closeAllActiveElements])
 
   return (
-    <View style={[s.hContentRegion, {overflow: 'hidden'}]}>
-      <View style={s.hContentRegion}>
-        <ErrorBoundary>
-          <FlatNavigator />
-        </ErrorBoundary>
-      </View>
+    <>
+      <ErrorBoundary>
+        <FlatNavigator />
+      </ErrorBoundary>
       <Composer winHeight={0} />
       <ModalsContainer />
+      <PortalOutlet />
       <Lightbox />
       {!isDesktop && isDrawerOpen && (
         <TouchableOpacity
@@ -53,7 +53,7 @@ function ShellInner() {
           </View>
         </TouchableOpacity>
       )}
-    </View>
+    </>
   )
 }
 
@@ -76,7 +76,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.black, // TODO
   },
   drawerMask: {
-    position: 'absolute',
+    // @ts-ignore web only
+    position: 'fixed',
     width: '100%',
     height: '100%',
     top: 0,
@@ -85,7 +86,8 @@ const styles = StyleSheet.create({
   },
   drawerContainer: {
     display: 'flex',
-    position: 'absolute',
+    // @ts-ignore web only
+    position: 'fixed',
     top: 0,
     left: 0,
     height: '100%',
