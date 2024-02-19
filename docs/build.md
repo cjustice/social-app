@@ -33,6 +33,7 @@
   - Start the docker daemon (on MacOS this entails starting the Docker Desktop app)
   - Launch a Postgres database on port 5432
   - `cd packages/dev-env && pnpm start`
+  - Test line
 - Run the dev app
   - iOS: `yarn ios`
     - Xcode must be installed for this to run.
